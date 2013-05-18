@@ -51,7 +51,8 @@ int load_565rle_image(char *filename, bool bf_supported)
 	struct fb_info *info;
 	int fd, count, err = 0;
 	unsigned max;
-	unsigned short *data, *bits, *ptr;
+	unsigned short *data, *ptr;
+	unsigned char *bits;
 
 	info = registered_fb[0];
 	if (!info) {
@@ -92,7 +93,7 @@ int load_565rle_image(char *filename, bool bf_supported)
 		       __func__, __LINE__, info->node);
 		goto err_logo_free_data;
 	}
-	bits = (unsigned short *)(info->screen_base);
+	bits = (unsigned char *)(info->screen_base);
 	while (count > 3) {
 		unsigned n = ptr[0];
 		if (n > max)

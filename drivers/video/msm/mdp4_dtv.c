@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2011, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -155,7 +155,7 @@ static int dtv_on(struct platform_device *pdev)
 	}
 	pr_info("%s: tv_src_clk=%dkHz, pm_qos_rate=%ldkHz, [%d]\n", __func__,
 		mfd->fbi->var.pixclock/1000, pm_qos_rate, ret);
-
+	mfd->panel_info.clk_rate = mfd->fbi->var.pixclock;
 	clk_enable(hdmi_clk);
 	clk_reset(hdmi_clk, CLK_RESET_ASSERT);
 	udelay(20);
@@ -178,6 +178,40 @@ static int dtv_probe(struct platform_device *pdev)
 
 	if (pdev->id == 0) {
 		dtv_pdata = pdev->dev.platform_data;
+#ifdef CONFIG_MSM_BUS_SCALING
+		if (!dtv_bus_scale_handle && dtv_pdata &&
+			dtv_pdata->bus_scale_table) {
+			dtv_bus_scale_handle =
+				msm_bus_scale_register_client(
+						dtv_pdata->bus_scale_table);
+			if (!dtv_bus_scale_handle) {
+				pr_err("%s not able to get bus scale\n",
+					__func__);
+			}
+		}
+#else
+		ebi1_clk = clk_get(NULL, "ebi1_dtv_clk");
+		if (IS_ERR(ebi1_clk)) {
+			ebi1_clk = NULL;
+			pr_warning("%s: Couldn't get ebi1 clock\n", __func__);
+		}
+#endif
+		tv_src_clk = clk_get(NULL, "tv_src_clk");
+		if (IS_ERR(tv_src_clk)) {
+			pr_err("error: can't get tv_src_clk!\n");
+			return IS_ERR(tv_src_clk);
+		}
+
+		hdmi_clk = clk_get(NULL, "hdmi_clk");
+		if (IS_ERR(hdmi_clk)) {
+			pr_err("error: can't get hdmi_clk!\n");
+			return IS_ERR(hdmi_clk);
+		}
+
+		mdp_tv_clk = clk_get(NULL, "mdp_tv_clk");
+		if (IS_ERR(mdp_tv_clk))
+			mdp_tv_clk = NULL;
+
 		return 0;
 	}
 
@@ -238,24 +272,6 @@ static int dtv_probe(struct platform_device *pdev)
 	fbi->var.hsync_len = mfd->panel_info.lcdc.h_pulse_width;
 	fbi->var.vsync_len = mfd->panel_info.lcdc.v_pulse_width;
 
-#ifdef CONFIG_MSM_BUS_SCALING
-	if (!dtv_bus_scale_handle && dtv_pdata &&
-		dtv_pdata->bus_scale_table) {
-		dtv_bus_scale_handle =
-			msm_bus_scale_register_client(
-					dtv_pdata->bus_scale_table);
-		if (!dtv_bus_scale_handle) {
-			pr_err("%s not able to get bus scale\n",
-				__func__);
-		}
-	}
-#else
-	ebi1_clk = clk_get(NULL, "ebi1_dtv_clk");
-	if (IS_ERR(ebi1_clk)) {
-		ebi1_clk = NULL;
-		pr_warning("%s: Couldn't get ebi1 clock\n", __func__);
-	}
-#endif
 	/*
 	 * set driver data
 	 */
@@ -305,22 +321,6 @@ static int dtv_register_driver(void)
 
 static int __init dtv_driver_init(void)
 {
-	tv_src_clk = clk_get(NULL, "tv_src_clk");
-	if (IS_ERR(tv_src_clk)) {
-		pr_err("error: can't get tv_src_clk!\n");
-		return IS_ERR(tv_src_clk);
-	}
-
-	hdmi_clk = clk_get(NULL, "hdmi_clk");
-	if (IS_ERR(hdmi_clk)) {
-		pr_err("error: can't get hdmi_clk!\n");
-		return IS_ERR(hdmi_clk);
-	}
-
-	mdp_tv_clk = clk_get(NULL, "mdp_tv_clk");
-	if (IS_ERR(mdp_tv_clk))
-		mdp_tv_clk = NULL;
-
 	return dtv_register_driver();
 }
 

@@ -1,4 +1,4 @@
-/* Copyright (c) 2008-2009, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2008-2009, 2012 The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -291,7 +291,8 @@ void mdp_vsync_cfg_regs(struct msm_fb_data_type *mfd,
 }
 #endif
 
-void mdp_config_vsync(struct msm_fb_data_type *mfd)
+void mdp_config_vsync(struct platform_device *pdev,
+	struct msm_fb_data_type *mfd)
 {
 	/* vsync on primary lcd only for now */
 	if ((mfd->dest != DISPLAY_LCD) || (mfd->panel_info.pdest != DISPLAY_1)
